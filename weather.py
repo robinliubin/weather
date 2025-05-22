@@ -1,6 +1,8 @@
-from typing import Any
+from typing import Any, Tuple
 import httpx
 from mcp.server.fastmcp import FastMCP
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
 # Initialize FastMCP server
 mcp = FastMCP("weather")
@@ -8,6 +10,7 @@ mcp = FastMCP("weather")
 # Constants
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
+GEOCODER = Nominatim(user_agent=USER_AGENT)
 
 async def make_nws_request(url: str) -> dict[str, Any] | None:
     """Make a request to the NWS API with proper error handling."""
@@ -78,7 +81,7 @@ async def get_forecast(latitude: float, longitude: float) -> str:
     # Format the periods into a readable forecast
     periods = forecast_data["properties"]["periods"]
     forecasts = []
-    for period in periods[:5]:  # Only show next 5 periods
+    for period in periods:  # Show all available periods (usually 14 for a 7-day forecast)
         forecast = f"""
 {period['name']}:
 Temperature: {period['temperature']}°{period['temperatureUnit']}
@@ -88,6 +91,46 @@ Forecast: {period['detailedForecast']}
         forecasts.append(forecast)
 
     return "\n---\n".join(forecasts)
+
+def geocode_city(city: str, state: str = None) -> Tuple[float, float] | None:
+    """Convert a city name to latitude and longitude coordinates.
+    
+    Args:
+        city: The name of the city
+        state: Optional US state code (e.g. CA, NY)
+        
+    Returns:
+        Tuple of (latitude, longitude) or None if geocoding failed
+    """
+    try:
+        # Add state code to query if provided for better accuracy
+        query = f"{city}, {state}" if state else city
+        location = GEOCODER.geocode(query, exactly_one=True, timeout=10)
+        
+        if location:
+            return (location.latitude, location.longitude)
+        return None
+    except (GeocoderTimedOut, GeocoderServiceError):
+        return None
+
+@mcp.tool()
+async def get_forecast_by_city(city: str, state: str = None) -> str:
+    """Get a 7-day weather forecast for a city.
+    
+    Args:
+        city: The name of the city
+        state: Optional US state code (e.g. CA, NY) for better accuracy
+    """
+    # First geocode the city to get coordinates
+    coordinates = geocode_city(city, state)
+    
+    if not coordinates:
+        return f"Unable to find coordinates for {city}{', ' + state if state else ''}."
+    
+    latitude, longitude = coordinates
+    
+    # Use the existing forecast function with the obtained coordinates
+    return await get_forecast(latitude, longitude)
 
 if __name__ == "__main__":
     # Initialize and run the server
