@@ -6,6 +6,7 @@ A Python-based weather application that provides access to the National Weather 
 
 - Get active weather alerts for any US state
 - Retrieve detailed weather forecasts for specific geographic coordinates
+- Get 7-day weather forecasts for any city by name
 - Cleanly formatted output for easy reading
 - Built as an MCP (Anthropic's Model Control Protocol) tool for use with Claude
 
@@ -26,16 +27,18 @@ pip install -e .
 
 ### As an MCP Tool with Claude
 
-This application is designed to be used as a tool with Claude via the MCP protocol. Once installed, Claude can access weather data through two main functions:
+This application is designed to be used as a tool with Claude via the MCP protocol. Once installed, Claude can access weather data through three main functions:
 
 1. `get_alerts(state)` - Get active weather alerts for a US state
 2. `get_forecast(latitude, longitude)` - Get a detailed weather forecast for specific coordinates
+3. `get_forecast_by_city(city, state)` - Get a 7-day weather forecast for a city by name
 
 ### Example Queries for Claude
 
 ```
 What weather alerts are active in CA?
 What's the weather forecast for latitude 37.7749 and longitude -122.4194 (San Francisco)?
+What's the 7-day weather forecast for Seattle, WA?
 ```
 
 ### Running Locally
