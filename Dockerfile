@@ -1,6 +1,6 @@
 FROM golang:1.20-alpine AS builder
 
-WORKDIR /app
+WORKDIR /myapp
 
 # Copy go module files first for better layer caching
 COPY go.mod ./
@@ -16,10 +16,10 @@ RUN go build -o weather-app .
 # Create a minimal production image
 FROM alpine:3.18
 
-WORKDIR /app
+WORKDIR /myapp
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/weather-app .
+COPY --from=builder /myapp/weather-app .
 
 # Expose the application port
 EXPOSE 8080
